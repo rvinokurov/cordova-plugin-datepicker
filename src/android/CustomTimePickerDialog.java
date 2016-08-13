@@ -18,13 +18,17 @@ public class CustomTimePickerDialog extends TimePickerDialog {
     private final static int TIME_PICKER_INTERVAL = 15;
     private TimePicker timePicker;
     private final OnTimeSetListener callback;
+    private  int _minute;
 
 
     public CustomTimePickerDialog(Context context, int themeResId, OnTimeSetListener callBack,
                                   int hourOfDay, int minute, boolean is24HourView) {
         super(context, TimePickerDialog.THEME_HOLO_LIGHT, callBack, hourOfDay, minute / TIME_PICKER_INTERVAL,
                 is24HourView);
+        this._minute = minute;
+
         this.callback = callBack;
+
     }
 
     @Override
@@ -54,6 +58,7 @@ public class CustomTimePickerDialog extends TimePickerDialog {
                     .findViewById(field.getInt(null));
             mMinuteSpinner.setMinValue(0);
             mMinuteSpinner.setMaxValue((60 / TIME_PICKER_INTERVAL) - 1);
+            mMinuteSpinner.setValue(this._minute / TIME_PICKER_INTERVAL);
             List<String> displayedValues = new ArrayList<String>();
             for (int i = 0; i < 60; i += TIME_PICKER_INTERVAL) {
                 displayedValues.add(String.format("%02d", i));
