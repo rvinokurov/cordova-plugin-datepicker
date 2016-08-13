@@ -36,6 +36,7 @@ import android.util.Log;
 import android.widget.DatePicker;
 import android.widget.DatePicker.OnDateChangedListener;
 import android.widget.TimePicker;
+import com.plugin.datepicker.CustomTimePickerDialog;
 
 @SuppressLint("NewApi")
 public class DatePickerPlugin extends CordovaPlugin {
@@ -45,7 +46,7 @@ public class DatePickerPlugin extends CordovaPlugin {
 	private static final String RESULT_ERROR = "error";
 	private static final String RESULT_CANCEL = "cancel";
 	private final String pluginName = "DatePickerPlugin";
-	
+
 	// On some devices, onDateSet or onTimeSet are being called twice
 	private boolean called = false;
 	private boolean canceled = false;
@@ -68,10 +69,10 @@ public class DatePickerPlugin extends CordovaPlugin {
 		Context currentCtx = cordova.getActivity();
 		Runnable runnable;
 		JsonDate jsonDate = new JsonDate().fromJson(data);
-		    
-    // Retrieve Android theme
-    JSONObject options = data.optJSONObject(0);
-    int theme = options.optInt("androidTheme", 1);
+
+		// Retrieve Android theme
+		JSONObject options = data.optJSONObject(0);
+		int theme = options.optInt("androidTheme", 1);
 
 		if (ACTION_TIME.equalsIgnoreCase(jsonDate.action)) {
 			runnable = runnableTimeDialog(datePickerPlugin, theme, currentCtx,
@@ -83,19 +84,19 @@ public class DatePickerPlugin extends CordovaPlugin {
 
 		cordova.getActivity().runOnUiThread(runnable);
 	}
-	
+
 	private TimePicker timePicker;
 	private int timePickerHour = 0;
 	private int timePickerMinute = 0;
-	
+
 	private Runnable runnableTimeDialog(final DatePickerPlugin datePickerPlugin,
-			final int theme, final Context currentCtx, final CallbackContext callbackContext,
-			final JsonDate jsonDate, final Calendar calendarDate) {
+										final int theme, final Context currentCtx, final CallbackContext callbackContext,
+										final JsonDate jsonDate, final Calendar calendarDate) {
 		return new Runnable() {
 			@Override
 			public void run() {
 				final TimeSetListener timeSetListener = new TimeSetListener(datePickerPlugin, callbackContext, calendarDate);
-				final TimePickerDialog timeDialog = new TimePickerDialog(currentCtx, theme, timeSetListener, jsonDate.hour,
+				final CustomTimePickerDialog timeDialog = new CustomTimePickerDialog(currentCtx, theme, timeSetListener, jsonDate.hour,
 						jsonDate.minutes, jsonDate.is24Hour) {
 					public void onTimeChanged(TimePicker view, int hourOfDay, int minute) {
 						timePicker = view;
@@ -103,10 +104,12 @@ public class DatePickerPlugin extends CordovaPlugin {
 						timePickerMinute = minute;
 					}
 				};
+
+
 				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
 					timeDialog.setCancelable(true);
 					timeDialog.setCanceledOnTouchOutside(false);
-					
+
 					if (!jsonDate.titleText.isEmpty()){
 						timeDialog.setTitle(jsonDate.titleText);
 					}
@@ -120,8 +123,8 @@ public class DatePickerPlugin extends CordovaPlugin {
 								}
 							}
 						});
-			        }
-					String labelCancel = jsonDate.cancelText.isEmpty() ? currentCtx.getString(android.R.string.cancel) : jsonDate.cancelText; 
+					}
+					String labelCancel = jsonDate.cancelText.isEmpty() ? currentCtx.getString(android.R.string.cancel) : jsonDate.cancelText;
 					timeDialog.setButton(DialogInterface.BUTTON_NEGATIVE, labelCancel, new DialogInterface.OnClickListener() {
 						@Override
 						public void onClick(DialogInterface dialog, int which) {
@@ -138,7 +141,7 @@ public class DatePickerPlugin extends CordovaPlugin {
 			}
 		};
 	}
-	
+
 	private Runnable runnableDatePicker(
 			final DatePickerPlugin datePickerPlugin,
 			final int theme, final Context currentCtx,
@@ -155,48 +158,48 @@ public class DatePickerPlugin extends CordovaPlugin {
 				else {
 					prepareDialogPreHoneycomb(dateDialog, callbackContext, currentCtx, jsonDate);
 				}
-				
+
 				dateDialog.show();
 			}
 		};
 	}
-	
-	private void prepareDialog(final DatePickerDialog dateDialog, final OnDateSetListener dateListener, 
-			final CallbackContext callbackContext, Context currentCtx, JsonDate jsonDate) {
+
+	private void prepareDialog(final DatePickerDialog dateDialog, final OnDateSetListener dateListener,
+							   final CallbackContext callbackContext, Context currentCtx, JsonDate jsonDate) {
 		dateDialog.setCancelable(true);
 		dateDialog.setCanceledOnTouchOutside(false);
 		if (!jsonDate.titleText.isEmpty()){
 			dateDialog.setTitle(jsonDate.titleText);
 		}
 		if (!jsonDate.todayText.isEmpty()){
-            dateDialog.setButton(DialogInterface.BUTTON_NEUTRAL, jsonDate.todayText, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                	Calendar now = Calendar.getInstance();
-                	DatePicker datePicker = dateDialog.getDatePicker();
+			dateDialog.setButton(DialogInterface.BUTTON_NEUTRAL, jsonDate.todayText, new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					Calendar now = Calendar.getInstance();
+					DatePicker datePicker = dateDialog.getDatePicker();
 					dateListener.onDateSet(datePicker, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH));
-                }
-            });
-        }
-		String labelCancel = jsonDate.cancelText.isEmpty() ? currentCtx.getString(android.R.string.cancel) : jsonDate.cancelText; 
+				}
+			});
+		}
+		String labelCancel = jsonDate.cancelText.isEmpty() ? currentCtx.getString(android.R.string.cancel) : jsonDate.cancelText;
 		dateDialog.setButton(DialogInterface.BUTTON_NEGATIVE, labelCancel, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
 				canceled = true;
 				callbackContext.error(RESULT_CANCEL);
-            }
-        });
+			}
+		});
 		String labelOk = jsonDate.okText.isEmpty() ? currentCtx.getString(android.R.string.ok) : jsonDate.okText;
 		dateDialog.setButton(DialogInterface.BUTTON_POSITIVE, labelOk, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
 				DatePicker datePicker = dateDialog.getDatePicker();
 				datePicker.clearFocus();
 				dateListener.onDateSet(datePicker, datePicker.getYear(), datePicker.getMonth(), datePicker.getDayOfMonth());
-            }
-        });
-        
-        DatePicker dp = dateDialog.getDatePicker();
+			}
+		});
+
+		DatePicker dp = dateDialog.getDatePicker();
 		if(jsonDate.minDate > 0) {
 			dp.setMinDate(jsonDate.minDate);
 		}
@@ -204,9 +207,9 @@ public class DatePickerPlugin extends CordovaPlugin {
 			dp.setMaxDate(jsonDate.maxDate);
 		}
 	}
-	
+
 	private void prepareDialogPreHoneycomb(DatePickerDialog dateDialog,
-			final CallbackContext callbackContext, Context currentCtx, final JsonDate jsonDate){
+										   final CallbackContext callbackContext, Context currentCtx, final JsonDate jsonDate){
 		java.lang.reflect.Field mDatePickerField = null;
 		try {
 			mDatePickerField = dateDialog.getClass().getDeclaredField("mDatePicker");
@@ -229,28 +232,28 @@ public class DatePickerPlugin extends CordovaPlugin {
 		endDate.setTimeInMillis(jsonDate.maxDate);
 
 		final int minYear = startDate.get(Calendar.YEAR);
-	    final int minMonth = startDate.get(Calendar.MONTH);
-	    final int minDay = startDate.get(Calendar.DAY_OF_MONTH);
-	    final int maxYear = endDate.get(Calendar.YEAR);
-	    final int maxMonth = endDate.get(Calendar.MONTH);
-	    final int maxDay = endDate.get(Calendar.DAY_OF_MONTH);
+		final int minMonth = startDate.get(Calendar.MONTH);
+		final int minDay = startDate.get(Calendar.DAY_OF_MONTH);
+		final int maxYear = endDate.get(Calendar.YEAR);
+		final int maxMonth = endDate.get(Calendar.MONTH);
+		final int maxDay = endDate.get(Calendar.DAY_OF_MONTH);
 
 		if(startDate !=null || endDate != null) {
 			pickerView.init(jsonDate.year, jsonDate.month, jsonDate.day, new OnDateChangedListener() {
-                @Override
+				@Override
 				public void onDateChanged(DatePicker view, int year, int month, int day) {
-                	if(jsonDate.maxDate > 0 && jsonDate.maxDate > jsonDate.minDate) {
-	                	if(year > maxYear || month > maxMonth && year == maxYear || day > maxDay && year == maxYear && month == maxMonth){
-	                		view.updateDate(maxYear, maxMonth, maxDay);
-	                	}
-                	}
-                	if(jsonDate.minDate > 0) {
-	                	if(year < minYear || month < minMonth && year == minYear || day < minDay && year == minYear && month == minMonth) {
-	                		view.updateDate(minYear, minMonth, minDay);
-	                	}
-                	}
-            	}
-            });
+					if(jsonDate.maxDate > 0 && jsonDate.maxDate > jsonDate.minDate) {
+						if(year > maxYear || month > maxMonth && year == maxYear || day > maxDay && year == maxYear && month == maxMonth){
+							view.updateDate(maxYear, maxMonth, maxDay);
+						}
+					}
+					if(jsonDate.minDate > 0) {
+						if(year < minYear || month < minMonth && year == minYear || day < minDay && year == minYear && month == minMonth) {
+							view.updateDate(minYear, minMonth, minDay);
+						}
+					}
+				}
+			});
 		}
 	}
 
@@ -264,7 +267,7 @@ public class DatePickerPlugin extends CordovaPlugin {
 			this.datePickerPlugin = datePickerPlugin;
 			this.callbackContext = callbackContext;
 			this.jsonDate = jsonDate;
-      this.theme = theme;
+			this.theme = theme;
 		}
 
 		/**
@@ -277,24 +280,24 @@ public class DatePickerPlugin extends CordovaPlugin {
 			}
 			called = true;
 			canceled = false;
-			
+
 			Log.d("onDateSet", "called: " + called);
 			Log.d("onDateSet", "canceled: " + canceled);
 			Log.d("onDateSet", "mode: " + jsonDate.action);
-			
+
 			if (ACTION_DATE.equalsIgnoreCase(jsonDate.action)) {
 				String returnDate = year + "/" + (monthOfYear + 1) + "/" + dayOfMonth;
 				Log.d("onDateSet", "returnDate: " + returnDate);
-				
+
 				callbackContext.success(returnDate);
-			
+
 			} else {
 				// Open time dialog
 				Calendar selectedDate = Calendar.getInstance();
 				selectedDate.set(Calendar.YEAR, year);
 				selectedDate.set(Calendar.MONTH, monthOfYear);
 				selectedDate.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-				
+
 				cordova.getActivity().runOnUiThread(runnableTimeDialog(datePickerPlugin, theme, cordova.getActivity(),
 						callbackContext, jsonDate, selectedDate));
 			}
@@ -319,7 +322,7 @@ public class DatePickerPlugin extends CordovaPlugin {
 			if (canceled) {
 				return;
 			}
-			
+
 			calendarDate.set(Calendar.HOUR_OF_DAY, hourOfDay);
 			calendarDate.set(Calendar.MINUTE, minute);
 			calendarDate.set(Calendar.SECOND, 0);
@@ -331,9 +334,9 @@ public class DatePickerPlugin extends CordovaPlugin {
 			callbackContext.success(toReturn);
 		}
 	}
-	
+
 	private final class JsonDate {
-		
+
 		private String action = ACTION_DATE;
 		private String titleText = "";
 		private String okText = "";
@@ -403,7 +406,7 @@ public class DatePickerPlugin extends CordovaPlugin {
 					&& !object.isNull(key)
 					&& object.get(key).toString().length() > 0
 					&& !JSONObject.NULL.toString().equals(
-							object.get(key).toString());
+					object.get(key).toString());
 		}
 
 	}
